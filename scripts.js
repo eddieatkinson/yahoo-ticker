@@ -37,6 +37,7 @@ $(document).ready(()=>{
 	if(watchList !== null){
 		updateWatchlist();	
 	}
+	var deleteBtnPushed = false;
 
 
 	var firstView = true;
@@ -48,6 +49,7 @@ $(document).ready(()=>{
 		var url = `http://query.yahooapis.com/v1/public/yql?q=env%20%27store://datatables.org/alltableswithkeys%27;select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22${stockSymbol}%22)%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json`;
 		if(stockSymbol != ''){	
 			$.getJSON(url, (theDataJSFound)=>{
+				
 				// console.log(theDataJSFound);
 				var numFound = theDataJSFound.query.count
 				var newRow = '';
@@ -68,6 +70,7 @@ $(document).ready(()=>{
 					$('#stock-table-body').append(newRow);
 				}
 				$('td .save-btn').click(function(){
+					// deleteBtnPushed = false;
 					// Add a click listener to all the buttons in the tables.
 					// When clicked on, save the symbol to localStorage.
 					var stockToSave = $(this).attr('symbol'); // Get the saved stock symbol (an array).
@@ -91,16 +94,31 @@ $(document).ready(()=>{
 						var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
 						localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
 					}
+					updateWatchlist();
 				});
+				// $('td .delete-btn').click(function(){
+				// 	deleteBtnPushed = true;
+				// 	console.log("Clicked!");
+				// 	var stockToDelete = $(this).attr('symbol'); // Get the saved stock symbol (an array).
+				// 	var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
+				// 	var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
+				// 	var stockToDeleteIndex = oldAsJSON.indexOf(stockToDelete);
+				// 	oldAsJSON.splice(stockToDeleteIndex, 1);
+				// 	var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
+				// 	localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+				// 	console.log(oldAsJSON);
+				// 	updateWatchlist();
+				// });
 
-			})
+			});
 		}else{
 			console.log("Nothing entered!");
 			alert("Please enter a ticker.");
 
-		}
-		
+		};
+
 		$('td .delete-btn').click(function(){
+			deleteBtnPushed = true;
 			console.log("Clicked!");
 			var stockToDelete = $(this).attr('symbol'); // Get the saved stock symbol (an array).
 			var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
@@ -111,8 +129,10 @@ $(document).ready(()=>{
 			localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
 			console.log(oldAsJSON);
 			updateWatchlist();
-		});	
-	})
+		});
+
+
+	});
 
 	function buildRow(stockInfo, isSavedList){
 		if(stockInfo.Change === null){
@@ -135,28 +155,70 @@ $(document).ready(()=>{
 			newRow += `<td class="bg-${classChange}">${stockInfo.Change}</td>`;
 			if(!isSavedList){
 				newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-success save-btn">Save</button></td>`;
+			}else{
+				newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-danger delete-btn">Delete</button></td>`;
 			}
-			newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-danger delete-btn">Delete</button></td>`;
 		newRow += `</tr>`;
 		return newRow;
 	}
 
 	function updateWatchlist(){
+		var count = 0;
 		// get the watchList
 		var watchList = localStorage.getItem('watchList');
 		// Problem. The Christmas lights are tangled.
 		var watchListAsJSON = JSON.parse(watchList);
-		watchListAsJSON.map((symbol, index)=>{
-			// console.log(symbol);
-			var url = `http://query.yahooapis.com/v1/public/yql?q=env%20%27store://datatables.org/alltableswithkeys%27;select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22${symbol}%22)%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json`;
-			$.getJSON(url, (stockData)=>{
-				var stockInfo = stockData.query.results.quote;
-				var newRow = buildRow(stockInfo, true);
-				$('#stock-table-saved-body').append(newRow);
-			})
-		});
-
+		if(watchListAsJSON.length > 0){
+			watchListAsJSON.map((symbol, index)=>{
+				// console.log(symbol);
+				var url = `http://query.yahooapis.com/v1/public/yql?q=env%20%27store://datatables.org/alltableswithkeys%27;select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22${symbol}%22)%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json`;
+				$.getJSON(url, (stockData)=>{
+					var stockInfo = stockData.query.results.quote;
+					var newRow = buildRow(stockInfo, true);
+					console.log(index);
+					console.log(count);
+					if(count == 0){
+						$('#stock-table-saved-body').html(newRow);
+					}else{
+						$('#stock-table-saved-body').append(newRow);
+					}
+					count++;
+				});	
+				
+			});
+		}else{
+			$('#stock-table-saved-body').html('');
+		}
 	}
+	// $('td .delete-btn').click(function(){
+	// 	deleteBtnPushed = true;
+	// 	console.log("Clicked!");
+	// 	var stockToDelete = $(this).attr('symbol'); // Get the saved stock symbol (an array).
+	// 	var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
+	// 	var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
+	// 	var stockToDeleteIndex = oldAsJSON.indexOf(stockToDelete);
+	// 	oldAsJSON.splice(stockToDeleteIndex, 1);
+	// 	var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
+	// 	localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+	// 	console.log(oldAsJSON);
+	// 	updateWatchlist();
+	// });
+	// $('td .delete-btn').click(function(){
+	// 	deleteBtn();
+	// })
+	// function deleteBtn(){
+	// 	console.log("Clicked!");
+	// 	var stockToDelete = $(this).attr('symbol'); // Get the saved stock symbol (an array).
+	// 	var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
+	// 	var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
+	// 	var stockToDeleteIndex = oldAsJSON.indexOf(stockToDelete);
+	// 	oldAsJSON.splice(stockToDeleteIndex, 1);
+	// 	var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
+	// 	localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+	// 	console.log(oldAsJSON);
+	// 	updateWatchlist();
+	// };
+	
 	
 	
 })
