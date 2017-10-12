@@ -33,6 +33,10 @@ $(document).ready(()=>{
 	// localStorage.setItem('watchList', 'race');
 	// var watchList = localStorage.getItem('watchList');
 	// console.log(watchList); // 'race'
+	var watchList = localStorage.getItem('watchList');
+	if(watchList !== null){
+		updateWatchlist();	
+	}
 
 
 	var firstView = true;
@@ -40,50 +44,77 @@ $(document).ready(()=>{
 		// Stop the browser from sending the page on...we will handle it
 		event.preventDefault();
 		var stockSymbol = $('#ticker').val();
+		// if(stockSymbol != 'null'){
 		var url = `http://query.yahooapis.com/v1/public/yql?q=env%20%27store://datatables.org/alltableswithkeys%27;select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22${stockSymbol}%22)%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json`;
-		$.getJSON(url, (theDataJSFound)=>{
-			console.log(theDataJSFound);
-			var numFound = theDataJSFound.query.count
-			var newRow = '';
-			if(numFound > 1){
-				// We have multiples
-				theDataJSFound.query.results.quote.map((stock)=>{
-					newRow += buildRow(stock);
-				})
-			}else{
-				var stockInfo = theDataJSFound.query.results.quote;
-				newRow = buildRow(stockInfo);
-			}
-			
-			if(firstView){
-				$('#stock-table-body').html(newRow);
-				firstView = false;
-			}else{
-				$('#stock-table-body').append(newRow);
-			}
-			$('td button').click(function(){
-				// Add a click listener to all the buttons in the tables.
-				// When clicked on, save the symbol to localStorage.
-				var stockToSave = $(this).attr('symbol'); // Get the saved stock symbol (an array).
-				var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
-				// oldWatchList just came out of localStorage. Like Christmas lights,
-				// they come out tangled and must be dealt with --> JSON.parse().
-				var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
-				// JSON.parse() has just untangled our lights. We have an object/array.
-
-				// If the user has never saved anything, there will be nothing
-				// to parse. This will return null in JSON.
-				if(oldAsJSON === null){ // If the old list is empty...
-					oldAsJSON = [];
+		if(stockSymbol != ''){	
+			$.getJSON(url, (theDataJSFound)=>{
+				// console.log(theDataJSFound);
+				var numFound = theDataJSFound.query.count
+				var newRow = '';
+				if(numFound > 1){
+					// We have multiples
+					theDataJSFound.query.results.quote.map((stock)=>{
+						newRow += buildRow(stock, false);
+					})
+				}else{
+					var stockInfo = theDataJSFound.query.results.quote;
+					newRow = buildRow(stockInfo, false);
 				}
-				oldAsJSON.push(stockToSave); // Add the new stock symbol to the old list (an array).
-				// console.log(oldAsJSON); // 
-				var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
-				localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+				
+				if(firstView){
+					$('#stock-table-body').html(newRow);
+					firstView = false;
+				}else{
+					$('#stock-table-body').append(newRow);
+				}
+				$('td .save-btn').click(function(){
+					// Add a click listener to all the buttons in the tables.
+					// When clicked on, save the symbol to localStorage.
+					var stockToSave = $(this).attr('symbol'); // Get the saved stock symbol (an array).
+					var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
+					// oldWatchList just came out of localStorage. Like Christmas lights,
+					// they come out tangled and must be dealt with --> JSON.parse().
+					var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
+					// JSON.parse() has just untangled our lights. We have an object/array.
+
+					// If the user has never saved anything, there will be nothing
+					// to parse. This will return null in JSON.
+					if(oldAsJSON === null){ // If the old list is empty...
+						oldAsJSON = [];
+					}
+
+					if(oldAsJSON.indexOf(stockToSave) > -1){ // The stock is already in the list.
+						console.log("Stock already saved.")
+					}else{
+						oldAsJSON.push(stockToSave); // Add the new stock symbol to the old list (an array).
+						// console.log(oldAsJSON); // 
+						var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
+						localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+					}
+				});
+
 			})
-		})
+		}else{
+			console.log("Nothing entered!");
+			alert("Please enter a ticker.");
+
+		}
+		
+		$('td .delete-btn').click(function(){
+			console.log("Clicked!");
+			var stockToDelete = $(this).attr('symbol'); // Get the saved stock symbol (an array).
+			var oldWatchList = localStorage.getItem('watchList'); // Get the old list (a string, because it's in storage).
+			var oldAsJSON = JSON.parse(oldWatchList); // Turn the old list into an array.
+			var stockToDeleteIndex = oldAsJSON.indexOf(stockToDelete);
+			oldAsJSON.splice(stockToDeleteIndex, 1);
+			var newWatchListAsString = JSON.stringify(oldAsJSON); // Turn the appended list (array) into a string for storage.
+			localStorage.setItem('watchList', newWatchListAsString); // Put the new list (now a string) into localStorage.
+			console.log(oldAsJSON);
+			updateWatchlist();
+		});	
 	})
-	function buildRow(stockInfo){
+
+	function buildRow(stockInfo, isSavedList){
 		if(stockInfo.Change === null){
 			stockInfo.Change = 'MARKET CLOSED';
 			var classChange = "warning";
@@ -102,9 +133,30 @@ $(document).ready(()=>{
 			newRow += `<td>$ ${stockInfo.Ask}</td>`;
 			newRow += `<td>$ ${stockInfo.Bid}</td>`;
 			newRow += `<td class="bg-${classChange}">${stockInfo.Change}</td>`;
-			newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-success">Save</button></td>`
-			newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-danger">Delete</button></td>`
+			if(!isSavedList){
+				newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-success save-btn">Save</button></td>`;
+			}
+			newRow += `<td><button symbol=${stockInfo.Symbol} class="btn btn-danger delete-btn">Delete</button></td>`;
 		newRow += `</tr>`;
 		return newRow;
-	}	
+	}
+
+	function updateWatchlist(){
+		// get the watchList
+		var watchList = localStorage.getItem('watchList');
+		// Problem. The Christmas lights are tangled.
+		var watchListAsJSON = JSON.parse(watchList);
+		watchListAsJSON.map((symbol, index)=>{
+			// console.log(symbol);
+			var url = `http://query.yahooapis.com/v1/public/yql?q=env%20%27store://datatables.org/alltableswithkeys%27;select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22${symbol}%22)%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json`;
+			$.getJSON(url, (stockData)=>{
+				var stockInfo = stockData.query.results.quote;
+				var newRow = buildRow(stockInfo, true);
+				$('#stock-table-saved-body').append(newRow);
+			})
+		});
+
+	}
+	
+	
 })
