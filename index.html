@@ -24,20 +24,6 @@
 				</form>
 			</div><!-- col-sm-12 -->
 			<div class="col-sm-12">
-				<!-- Table structure:
-				1. Table
-					1. thead (table head)
-						1. tr (table row)
-							1. th (table heading)
-							2. th
-							3. th
-							...
-					2. tbody (table body)
-						1. tr
-							1. td (table data)
-							2. td
-							3. td
-							... -->
 				<table id="stock-table" class="table table-striped table-bordered">
 					<thead>
 						<tr>
@@ -58,7 +44,31 @@
 						</tr>
 					</tbody>
 				</table>
-			</div>
+			</div><!-- col-sm-12 -->
+
+			<div class="col-sm-12">
+				<h3>My watched stocks</h3>
+				<table id="stock-table-saved" class="table table-striped table-bordered">
+					<thead>
+						<tr>
+							<th>Stock Symbol</th>
+							<th>Company Name</th>
+							<th>Ask Price</th>
+							<th>Bid Price</th>
+							<th>Daily Change</th>
+						</tr>
+					</thead>
+					<tbody id="stock-table-saved-body">
+						<tr>
+							<td>-</td>
+							<td>-</td>
+							<td>-</td>
+							<td>-</td>
+							<td>-</td>
+						</tr>
+					</tbody>
+				</table>
+			</div><!-- col-sm-12 -->
 		</div><!-- row -->
 	</div><!-- container -->
 </body>
